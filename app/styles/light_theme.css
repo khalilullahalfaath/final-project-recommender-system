@@ -1,0 +1,411 @@
+/* ==========================================================================
+   Spotipai — Light Theme
+   ========================================================================== */
+
+/* ---------- Base layout ---------- */
+.stApp {
+    background-color: #FFFFFF;
+    color: #191414;
+}
+
+/* [data-testid="stAppViewContainer"] {
+    background-color: #FFFFFF;
+}
+
+[data-testid="stHeader"] {
+    background: transparent;
+} */
+
+#MainMenu { visibility: hidden; }
+footer    { visibility: hidden; }
+header [data-testid="stToolbar"] { display: block; }
+
+[data-testid="stDeployButton"] {
+    display: none !important;
+}
+
+[data-testid="stToolbar"] {
+    top: 40px;
+    left: 20px;
+} 
+
+#MainMenu { 
+    visibility: hidden !important; 
+}
+
+[data-testid="stStatusWidget"] {
+    visibility: hidden !important;
+}
+
+/* ---------- Sidebar ---------- */
+[data-testid="stSidebar"] {
+    background-color: #F6F6F6;
+    border-right: 1px solid #E8E8E8;
+}
+
+[data-testid="stSidebar"] .stMarkdown,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] li {
+    color: #5A5A5A;
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: #191414;
+}
+
+.sidebar-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    color: #5A5A5A;
+    font-weight: 500;
+    transition: background 0.2s ease, color 0.2s ease;
+    margin-bottom: 4px;
+}
+
+.sidebar-menu-item.active {
+    background: #ECECEC;
+    color: #191414;
+}
+
+.sidebar-menu-item .badge {
+    margin-left: auto;
+    font-size: 10px;
+    padding: 2px 8px;
+    background: #E0E0E0;
+    border-radius: 999px;
+    color: #6A6A6A;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-user {
+    margin-top: 16px;
+    padding: 12px;
+    background: #FFFFFF;
+    border-radius: 8px;
+    border: 1px solid #E8E8E8;
+}
+
+.sidebar-user .user-name {
+    color: #191414;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.sidebar-user .user-meta {
+    color: #6A6A6A;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+/* ---------- Typography ---------- */
+h1 { font-size: 32px; font-weight: 700; color: #191414; }
+h2 { font-size: 24px; font-weight: 700; color: #191414; }
+h3 { font-size: 18px; font-weight: 600; color: #191414; }
+
+.section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #191414;
+    margin: 28px 0 4px 0;
+}
+
+.section-subtitle {
+    font-size: 13px;
+    color: #6A6A6A;
+    margin-bottom: 12px;
+}
+
+/* ---------- Recommendation cards ---------- */
+.song-card-wrap {
+    padding: 8px 6px;
+    border-radius: 10px;
+    transition: background 0.2s ease;
+}
+
+.song-card-wrap:hover {
+    background: #F4F4F4;
+}
+
+.song-cover {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    display: block;
+}
+
+.song-card-wrap:hover .song-cover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.song-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #191414;
+    margin-top: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.song-artist {
+    font-size: 12px;
+    color: #6A6A6A;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- Tabs ---------- */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+    background-color: transparent;
+    border-bottom: 1px solid #E8E8E8;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background-color: transparent;
+    color: #6A6A6A;
+    border-bottom: 2px solid transparent;
+    padding: 12px 20px;
+    font-weight: 600;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: #191414;
+}
+
+.stTabs [aria-selected="true"] {
+    color: #191414;
+    border-bottom-color: #1DB954;
+}
+
+/* ---------- Buttons ---------- */
+.stButton > button,
+.stFormSubmitButton > button {
+    border-radius: 999px;
+    padding: 10px 20px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.stButton > button {
+    background-color: #1DB954;
+    color: #FFFFFF;
+}
+
+.stButton > button:hover {
+    background-color: #1ED760;
+    color: #FFFFFF;
+}
+
+.stFormSubmitButton > button[kind="primary"],
+.stFormSubmitButton > button {
+    background-color: #1DB954;
+    color: #FFFFFF;
+    border: none;
+}
+
+.stFormSubmitButton > button:hover {
+    background-color: #1ED760;
+}
+
+.stButton > button[kind="secondary"] {
+    background-color: transparent;
+    color: #1DB954;
+    border: 1px solid #1DB954;
+}
+
+.stButton > button[kind="secondary"]:hover {
+    background-color: rgba(29, 185, 84, 0.10);
+    color: #1ED760;
+    border-color: #1ED760;
+}
+
+.toggle-link-btn .stButton > button {
+    background: transparent;
+    color: #6A6A6A;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: underline;
+    padding: 6px 12px;
+}
+
+.toggle-link-btn .stButton > button:hover {
+    color: #191414;
+    background: transparent;
+}
+
+/* ---------- Inputs ---------- */
+.stTextInput > div > div > input {
+    background-color: #FFFFFF;
+    color: #191414;
+    border: 1px solid #D0D0D0;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.stTextInput > div > div > input:focus {
+    border-color: #1DB954;
+    box-shadow: 0 0 0 1px #1DB954;
+}
+
+.stTextInput label,
+.stPasswordInput label {
+    color: #191414 !important;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+/* ---------- Form card (auth) ---------- */
+[data-testid="stForm"] {
+    background: #F6F6F6;
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid #E8E8E8;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- Auth hero ---------- */
+.auth-hero {
+    font-size: 36px;
+    font-weight: 800;
+    color: #1DB954;
+    text-align: center;
+    margin-top: 40px;
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
+}
+
+.auth-tagline {
+    text-align: center;
+    color: #6A6A6A;
+    margin-bottom: 24px;
+    font-size: 14px;
+}
+
+.auth-form-title {
+    color: #191414;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 14px;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 18px 0 14px 0;
+    color: #6A6A6A;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #E0E0E0;
+}
+
+/* ---------- Navbar ---------- */
+.navbar-logo {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1DB954;
+    letter-spacing: -0.3px;
+    padding: 8px 0;
+    margin: 0;
+}
+
+.navbar-action .stButton > button {
+    padding: 8px 12px;
+    font-size: 13px;
+    background-color: #FFFFFF;
+    color: #191414;
+    border: 1px solid #D0D0D0;
+}
+
+.navbar-action .stButton > button:hover {
+    background-color: #F4F4F4;
+    color: #191414;
+    border-color: #1DB954;
+}
+
+.navbar-search .stTextInput > div > div > input {
+    padding: 8px 14px;
+    background-color: #F4F4F4;
+    border-radius: 999px;
+    border-color: #E8E8E8;
+}
+
+/* ---------- Greeting hero ---------- */
+.greeting-hero {
+    font-size: 30px;
+    font-weight: 800;
+    color: #191414;
+    margin: 20px 0 4px 0;
+    letter-spacing: -0.4px;
+}
+
+.greeting-sub {
+    font-size: 14px;
+    color: #6A6A6A;
+    margin-bottom: 16px;
+}
+
+/* ---------- Alerts ---------- */
+.stAlert {
+    border-radius: 8px;
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #FFFFFF;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #E0E0E0;
+    border-radius: 6px;
+    border: 3px solid #FFFFFF;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #C0C0C0;
+}
+
+/* ---------- Misc ---------- */
+a {
+    color: #1DB954;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #1ED760;
+    text-decoration: underline;
+}
+
+hr, [data-testid="stMarkdownContainer"] hr {
+    border-color: #E8E8E8;
+    margin: 12px 0;
+}
