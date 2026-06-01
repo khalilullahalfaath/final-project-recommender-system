@@ -83,7 +83,7 @@ st.markdown(
 )
 
 # Tabs for different recommendation types
-tab2, tab1 = st.tabs(["Content-Based", "Collaborative Filtering"])
+tab2, tab1 = st.tabs(["Set Your Profile", "From Similar Users"])
 
 with tab1:
     st.markdown(
