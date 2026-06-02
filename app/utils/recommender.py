@@ -98,6 +98,7 @@ def get_cbf_data():
     return {
         'df': df_spotify,
         'tfidf_artists': tfidf_artists,
+        'tfidf_title': tfidf_title,
         'genre_vec': genre_vec,
         'combined_features1': combined_features1,
         'combined_features2': combined_features2,
@@ -193,40 +194,73 @@ def _cover(song_id: str) -> str:
     return f"https://picsum.photos/seed/spotipai{seed}/300/300"
 
 
-def recommend_from_criteria(artist="", genre="", target_energy=0.5, target_valence=0.5, use_energy=True, use_valence=True, top_n=5):
+def recommend_from_criteria(artist="", genre="", target_energy=0.5, target_valence=0.5, use_energy=True, use_valence=True, top_n=5, use_w2v=False):
     """
     Scenario 1: Find songs based on specific criteria.
     """
+    import numpy as np
+    from scipy.sparse import diags, hstack, csr_matrix
+    from sklearn.metrics.pairwise import cosine_similarity
+    
     data = get_cbf_data()
     df_spotify = data['df']
-    tfidf_artists = data['tfidf_artists']
-    genre_vec = data['genre_vec']
-    combined_features1 = data['combined_features1']
-
+    
     # Audio array
     energy_val = target_energy if use_energy else 0.0
     valence_val = target_valence if use_valence else 0.0
-    
-    # Vectorize
-    q_text1 = tfidf_artists.transform([artist if artist else ""])
-    q_genre = genre_vec.transform([genre if genre else ""])
-    q_audio = csr_matrix([[energy_val, valence_val]])
 
-    # Combine
-    q_vector = hstack([q_text1, q_genre, q_audio]).tocsr()
-    
-    # Adjust database features if ignoring audio
-    from scipy.sparse import diags
-    import numpy as np
-    
-    n_cols = combined_features1.shape[1]
-    weights = np.ones(n_cols)
-    if not use_energy:
-        weights[-2] = 0.0
-    if not use_valence:
-        weights[-1] = 0.0
+    # Fallback: if no text provided, ignore Word2Vec and fallback to TF-IDF logic
+    if use_w2v and not artist.strip() and not genre.strip():
+        use_w2v = False
+
+    if not use_w2v:
+        tfidf_artists = data['tfidf_artists']
+        genre_vec = data['genre_vec']
+        combined_features1 = data['combined_features1']
         
-    adjusted_features = combined_features1.dot(diags(weights))
+        # Vectorize
+        q_text1 = tfidf_artists.transform([artist if artist else ""])
+        q_genre = genre_vec.transform([genre if genre else ""])
+        q_audio = csr_matrix([[energy_val, valence_val]])
+    
+        # Combine
+        q_vector = hstack([q_text1, q_genre, q_audio]).tocsr()
+        
+        # Adjust database features if ignoring audio
+        n_cols = combined_features1.shape[1]
+        weights = np.ones(n_cols)
+        if not use_energy: weights[-2] = 0.0
+        if not use_valence: weights[-1] = 0.0
+            
+        adjusted_features = combined_features1.dot(diags(weights))
+    else:
+        w2v_model = get_w2v_model()
+        aligned_w2v = get_aligned_w2v_matrix()
+        
+        audio_features = df_spotify[['energy', 'valence']].values
+        adjusted_features = np.hstack([aligned_w2v, audio_features])
+        
+        query_text = f"{artist} {genre}".strip()
+        tokens = clean_and_tokenize(query_text)
+        valid_vectors = []
+        for token in tokens:
+            if token in w2v_model:
+                valid_vectors.append(w2v_model[token])
+            elif token.capitalize() in w2v_model:
+                valid_vectors.append(w2v_model[token.capitalize()])
+                
+        if not valid_vectors:
+            q_text_vec = np.zeros(w2v_emb.shape[1])
+        else:
+            q_text_vec = np.mean(valid_vectors, axis=0)
+            
+        q_vector = np.concatenate([q_text_vec, [energy_val, valence_val]]).reshape(1, -1)
+        
+        weights = np.ones(adjusted_features.shape[1])
+        if not use_energy: weights[-2] = 0.0
+        if not use_valence: weights[-1] = 0.0
+        
+        adjusted_features = adjusted_features * weights
 
     # Similarity
     sim_scores = cosine_similarity(q_vector, adjusted_features)[0]
@@ -249,14 +283,16 @@ def recommend_from_criteria(artist="", genre="", target_energy=0.5, target_valen
     return results
 
 
-def recommend_from_seeds(seed_song_labels, top_n=5):
+def recommend_from_seeds(seed_song_labels, top_n=5, use_w2v=False):
     """
     Scenario 2: Find songs similar to user's favorite tracks.
     Format input seed_song_labels: ["Yellow - Coldplay", "Baby - Justin Bieber;Ludacris"]
     """
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+    
     data = get_cbf_data()
     df_spotify = data['df']
-    combined_features2 = data['combined_features2']
 
     if 'display_name' not in df_spotify.columns:
         df_spotify['display_name'] = df_spotify['track_name'] + " - " + df_spotify['artists']
@@ -274,11 +310,23 @@ def recommend_from_seeds(seed_song_labels, top_n=5):
     if not song_indices:
         return [], not_found
 
-    seed_vectors = combined_features2[song_indices]
-    user_profile_vector = seed_vectors.mean(axis=0)
-    user_profile_vector = np.asarray(user_profile_vector).flatten()
+    if not use_w2v:
+        combined_features2 = data['combined_features2']
+        seed_vectors = combined_features2[song_indices]
+        user_profile_vector = seed_vectors.mean(axis=0)
+        user_profile_vector = np.asarray(user_profile_vector).flatten()
+    
+        sim_scores = cosine_similarity(user_profile_vector.reshape(1, -1), combined_features2)[0]
+    else:
+        aligned_w2v = get_aligned_w2v_matrix()
+        audio_features = df_spotify[['energy', 'valence']].values
+        adjusted_features = np.hstack([aligned_w2v, audio_features])
+        
+        seed_vectors = adjusted_features[song_indices]
+        user_profile_vector = seed_vectors.mean(axis=0)
+        
+        sim_scores = cosine_similarity(user_profile_vector.reshape(1, -1), adjusted_features)[0]
 
-    sim_scores = cosine_similarity(user_profile_vector.reshape(1, -1), combined_features2)[0]
     sorted_indices = sim_scores.argsort()[::-1]
     
     # Exclude input songs
@@ -426,3 +474,187 @@ def get_mock_users_data():
         'df_spotify': df_spotify,
         'users': valid_user_ids
     }
+
+# ==========================================
+# Word2Vec Search Functions (Content-Based)
+# ==========================================
+import re
+
+def clean_and_tokenize(text):
+    text = str(text).lower()
+    text = re.sub(r'[^a-z0-9\s]', ' ', text)
+    return [word for word in text.split() if word.strip()]
+
+@st.cache_resource(show_spinner="Loading Google News Word2Vec Model (3.6GB)...")
+def get_w2v_model():
+    import os
+    from gensim.models import KeyedVectors
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    model_path = os.path.join(base_dir, "data", "word2vec", "GoogleNews-vectors-negative300-1.bin")
+    
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found at {model_path}")
+        
+    return KeyedVectors.load_word2vec_format(model_path, binary=True)
+
+@st.cache_resource(show_spinner="Loading Word2Vec Song Embeddings...")
+def get_w2v_embeddings():
+    import os
+    import numpy as np
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    embeddings_path = os.path.join(base_dir, "data", "w2v_embeddings.npy")
+    track_ids_path = os.path.join(base_dir, "data", "w2v_track_ids.npy")
+    
+    if not os.path.exists(embeddings_path) or not os.path.exists(track_ids_path):
+        raise FileNotFoundError("Word2Vec embeddings cache not found. Please run scripts/precompute_w2v.py first.")
+        
+    embeddings = np.load(embeddings_path)
+    track_ids = np.load(track_ids_path)
+    return embeddings, track_ids
+
+@st.cache_resource(show_spinner="Aligning Word2Vec Embeddings with Dataset...")
+def get_aligned_w2v_matrix():
+    import numpy as np
+    data = get_cbf_data()
+    df = data['df']
+    w2v_emb, track_ids = get_w2v_embeddings()
+    
+    track_id_to_idx = {tid: idx for idx, tid in enumerate(track_ids)}
+    
+    aligned_w2v = []
+    for tid in df['track_id']:
+        idx = track_id_to_idx[tid]
+        aligned_w2v.append(w2v_emb[idx])
+        
+    return np.array(aligned_w2v)
+
+def recommend_word2vec(query_text, top_n=5):
+    """
+    Recommend songs based on word2vec cosine similarity.
+    """
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+    
+    model = get_w2v_model()
+    aligned_w2v = get_aligned_w2v_matrix()
+    data = get_cbf_data()
+    df = data['df']
+    track_ids = df['track_id'].values
+    
+    # Process query
+    tokens = clean_and_tokenize(query_text)
+    valid_vectors = []
+    for token in tokens:
+        if token in model:
+            valid_vectors.append(model[token])
+        elif token.capitalize() in model:
+            valid_vectors.append(model[token.capitalize()])
+            
+    if not valid_vectors:
+        return [] # No valid words found
+        
+    query_vector = np.mean(valid_vectors, axis=0).reshape(1, -1)
+    
+    # Calculate similarity
+    similarities = cosine_similarity(query_vector, aligned_w2v)[0]
+    
+    top_indices = np.argsort(similarities)[::-1][:top_n]
+    top_track_ids = track_ids[top_indices]
+    
+    recommendations = []
+    for i, t_id in enumerate(top_track_ids):
+        match = df[df['track_id'] == t_id]
+        if not match.empty:
+            song = match.iloc[0]
+            recommendations.append({
+                "id": t_id,
+                "title": song['track_name'],
+                "artist": song['artists'],
+                "genre": song['track_genre'],
+                "cover_url": _cover(t_id),
+                "similarity": float(similarities[top_indices[i]])
+            })
+            
+    return recommendations
+
+# ==========================================
+# GNN Collaborative Filtering
+# ==========================================
+
+@st.cache_resource(show_spinner="Loading GNN Embeddings...")
+def get_gnn_embeddings():
+    import os
+    import pickle
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    emb_path = os.path.join(base_dir, "data", "gnn_embeddings.pkl")
+    
+    if not os.path.exists(emb_path):
+        raise FileNotFoundError("GNN embeddings not found. Please run scripts/train_gnn.py first.")
+        
+    with open(emb_path, "rb") as f:
+        data = pickle.load(f)
+        
+    return data['user_embeddings'], data['song_embeddings']
+
+def recommend_gnn(user_id, top_n=5):
+    """
+    Recommend songs using GNN Collaborative Filtering.
+    """
+    import numpy as np
+    from utils.user_data import get_liked_songs
+    
+    user_embeddings, song_embeddings = get_gnn_embeddings()
+    data = get_cbf_data()
+    df = data['df']
+    
+    likes = get_liked_songs(user_id)
+    liked_ids = {s['id'] for s in likes}
+    
+    # 1. Compute User Embedding (Always Inductive/Dynamic for real-time updates)
+    if not likes:
+        raise ValueError(f"User '{user_id}' has no ratings. Please rate some songs first in 'Set Your Profile'!")
+        
+    valid_embs = []
+    for song in likes:
+        tid = song['id']
+        if tid in song_embeddings:
+            valid_embs.append(song_embeddings[tid])
+            
+    if not valid_embs:
+        raise ValueError("None of your liked songs are recognized by the GNN model.")
+        
+    u_emb = np.mean(valid_embs, axis=0)
+        
+    # 2. Compute Dot Product with all songs
+    track_ids = list(song_embeddings.keys())
+    s_embs = np.array(list(song_embeddings.values()))
+    
+    scores = np.dot(s_embs, u_emb)
+    
+    # 3. Sort and format
+    top_indices = np.argsort(scores)[::-1]
+    
+    recommendations = []
+    for idx in top_indices:
+        tid = track_ids[idx]
+        if tid in liked_ids:
+            continue
+            
+        match = df[df['track_id'] == tid]
+        if not match.empty:
+            song = match.iloc[0]
+            # Convert raw dot product to probability using sigmoid for UI consistency
+            prob = 1 / (1 + np.exp(-scores[idx]))
+            
+            recommendations.append({
+                "id": tid,
+                "title": song['track_name'],
+                "artist": song['artists'],
+                "genre": song['track_genre'],
+                "cover_url": _cover(tid),
+                "similarity": float(prob)
+            })
+            if len(recommendations) >= top_n:
+                break
+                
+    return recommendations

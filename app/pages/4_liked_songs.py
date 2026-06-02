@@ -60,6 +60,9 @@ if not liked_songs:
     st.info("You haven't liked any songs yet. Go to the Home page and discover some music!")
     st.button("Go to Home", on_click=lambda: st.switch_page("pages/1_home.py"))
 else:
+    # Sort by rating descending to match the Search Users page
+    liked_songs = sorted(liked_songs, key=lambda x: x.get('rating', 0), reverse=True)
+    
     # We display them using native columns, similarly to recommendation_row but wrapped
     cards_per_row = 5
     for i in range(0, len(liked_songs), cards_per_row):

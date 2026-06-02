@@ -18,7 +18,12 @@ from utils.recommender import (
     recommend_from_criteria,
     recommend_from_seeds,
     recommend_collaborative,
+    recommend_word2vec,
+    recommend_gnn,
     get_song_list,
+    get_cbf_data,
+    get_w2v_embeddings,
+    get_gnn_embeddings
 )
 from utils.user_data import get_liked_songs
 from components.navbar import render_navbar
@@ -60,9 +65,13 @@ if not is_authenticated():
 # Render navbar
 render_navbar()
 
-# Render sidebar
+# Render sidebar (My Profile)
 render_sidebar()
 
+
+# ==========================================
+# MAIN PAGE
+# ==========================================
 # Greeting hero
 username = st.session_state.get("username", "User")
 hour = datetime.now().hour
@@ -83,7 +92,7 @@ st.markdown(
 )
 
 # Tabs for different recommendation types
-tab2, tab1 = st.tabs(["Set Your Profile", "From Similar Users"])
+tab2, tab3, tab1, tab4 = st.tabs(["Set Your Profile", "Word2Vec Search", "Similar Users (Classic)", "GNN Collab Filtering"])
 
 with tab1:
     st.markdown(
@@ -139,6 +148,7 @@ with tab2:
     )
 
     cbf_mode = st.radio("Choose recommendation mode:", ["Find by Criteria", "Find Similar to Favorite Songs"], horizontal=True)
+    use_w2v_profile = st.checkbox("Use Word2Vec AI (Instead of TF-IDF)", value=False, help="Enable this to combine Word2Vec text embeddings with Energy/Valence audio features.")
 
     if "form_key_suffix" not in st.session_state:
         st.session_state["form_key_suffix"] = 0
@@ -182,7 +192,8 @@ with tab2:
                         target_valence=target_valence, 
                         use_energy=use_energy,
                         use_valence=use_valence,
-                        top_n=top_n
+                        top_n=top_n,
+                        use_w2v=use_w2v_profile
                     )
                     st.session_state["criteria_results"] = results
                     
@@ -249,7 +260,7 @@ with tab2:
             st.session_state["seeds_results"] = None
             if selected_songs:
                 with st.spinner("Finding similar songs..."):
-                    results, not_found = recommend_from_seeds(selected_songs, top_n)
+                    results, not_found = recommend_from_seeds(selected_songs, top_n, use_w2v=use_w2v_profile)
                     st.session_state["seeds_results"] = results
                     st.session_state["seeds_not_found"] = not_found
             else:
@@ -265,4 +276,62 @@ with tab2:
             else:
                 if not not_found:
                     st.warning("Could not find any matches for the valid songs provided.")
+
+with tab3:
+    st.markdown(
+        '<div class="section-subtitle">Find songs using Word2Vec (Google News) Embeddings</div>',
+        unsafe_allow_html=True,
+    )
+    
+    query = st.text_input("Describe the song you're looking for:", placeholder="e.g. happy pop songs or coldplay acoustic")
+    top_n_semantic = st.number_input("Number of recommendations", min_value=1, max_value=20, value=5, key="top_n_semantic")
+    
+    if st.button("Search", type="primary", key="btn_semantic"):
+        st.session_state["w2v_results"] = None
+        st.session_state["w2v_query"] = query
+        if query.strip() == "":
+            st.warning("Please enter a description.")
+        else:
+            with st.spinner("Calculating Word2Vec similarities..."):
+                try:
+                    results = recommend_word2vec(query, int(top_n_semantic))
+                    st.session_state["w2v_results"] = results
+                except FileNotFoundError as e:
+                    st.error(str(e))
+                except Exception as e:
+                    st.error(f"Error during Word2Vec search: {e}")
+
+    if st.session_state.get("w2v_results") is not None:
+        if st.session_state["w2v_results"]:
+            query_str = st.session_state.get("w2v_query", "")
+            render_recommendation_row(f"Word2Vec Matches for '{query_str}'", st.session_state["w2v_results"])
+        else:
+            st.warning("No matches found or words not in vocabulary.")
+
+with tab4:
+    st.markdown(
+        '<div class="section-subtitle">Deep learning recommendations using Graph Neural Networks</div>',
+        unsafe_allow_html=True,
+    )
+    
+    top_n_gnn = st.number_input("Number of recommendations", min_value=1, max_value=20, value=5, key="top_n_gnn")
+    
+    if st.button("Generate GNN Recommendations", type="primary", key="btn_gnn"):
+        st.session_state["gnn_results"] = None
+        with st.spinner("Running PyTorch Geometric Graph Inference..."):
+            try:
+                results = recommend_gnn(username, int(top_n_gnn))
+                st.session_state["gnn_results"] = results
+            except FileNotFoundError as e:
+                st.error("GNN embeddings missing. Make sure train_gnn.py has completed successfully.")
+            except ValueError as e:
+                st.warning(str(e))
+            except Exception as e:
+                st.error(f"Error during GNN inference: {e}")
+
+    if st.session_state.get("gnn_results") is not None:
+        if st.session_state["gnn_results"]:
+            render_recommendation_row(f"GNN Picks for {username}", st.session_state["gnn_results"])
+        else:
+            st.warning("No recommendations found.")
 
