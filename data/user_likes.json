@@ -60,6 +60,14 @@
             "genre": "pop",
             "cover_url": "https://picsum.photos/seed/spotipai9931/300/300",
             "rating": 3
+        },
+        {
+            "id": "2FBAM2dVhCex33z30YA7hV",
+            "title": "Canciones",
+            "artist": "\u00c1rbol",
+            "genre": "punk-rock",
+            "cover_url": "https://picsum.photos/seed/spotipai4121/300/300",
+            "rating": 3
         }
     ],
     "user_98": [

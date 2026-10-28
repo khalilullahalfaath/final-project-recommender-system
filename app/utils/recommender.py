@@ -230,7 +230,7 @@ def recommend_from_criteria(artist="", genre="", target_energy=0.5, target_valen
         n_cols = combined_features1.shape[1]
         weights = np.ones(n_cols)
         if not use_energy: weights[-2] = 0.0
-        if not use_valence: weights[-1] = 0.0
+        if not use_valence: weights[-1] = 0.0 
             
         adjusted_features = combined_features1.dot(diags(weights))
     else:
